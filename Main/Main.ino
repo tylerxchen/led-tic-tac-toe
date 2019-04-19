@@ -8,27 +8,27 @@ int turn;
 int cursorCol;
 int cursorRow;
 int gameChanged;
-int changePos;
+volatile int changePos;
 
 void setup()
 {
     Serial.begin(9600);
     pinMode(CLK, INPUT);
     pinMode(DT, INPUT);
-    memset(game, 0, sizeof(game)*3*3);
+    memset(game, 0, sizeof(game[0][0])*3*3);
     turn = 1;
     cursorCol = 0;
     cursorRow = 0;
     gameChanged = 0;
     changePos = 0;
     printBoard();
-    attachInterrupt(digitalPinToInterrupt(CLK), readEncoder, RISING);
+    attachInterrupt(digitalPinToInterrupt(CLK), readEncoder, CHANGE);
 }
 
 void loop()
 {
     if (changePos) {
-	cursorRow += (cursorCol + changePos) / 3;
+	cursorRow = (cursorRow + ((cursorCol + changePos) / 3)) % 3;
 	cursorCol = (cursorCol + changePos) % 3;
 	changePos = 0;
 	gameChanged = 1;
@@ -49,15 +49,13 @@ void printBoard()
 	}
 	Serial.println();
     }
+    Serial.println();
 }
 
 void readEncoder()
 {
     if (digitalRead(DT) != digitalRead(CLK)) {
 	changePos = 1;
-    }
-    else {
-	changePos = -1;
     }
 }
 
