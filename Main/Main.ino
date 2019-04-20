@@ -18,6 +18,8 @@ int cursorCol;
 int cursorRow;
 int gameChanged;
 int column;
+int blinker;
+
 volatile int changePos;
 
 void displayBoard()
@@ -29,6 +31,15 @@ void displayBoard()
     digitalWrite(SHIFT_RCLK, LOW);
 	
     for (int i = 0; i < 3; i++) {
+	if (i == cursorRow && column == cursorCol) {
+	    digitalWrite(SHIFT_SER, blinker);
+	    digitalWrite(SHIFT_SRCLK, HIGH);
+	    digitalWrite(SHIFT_SRCLK, LOW);
+	    digitalWrite(SHIFT_SER, blinker);
+	    digitalWrite(SHIFT_SRCLK, HIGH);
+	    digitalWrite(SHIFT_SRCLK, LOW);
+	}
+	
 	switch (game[i][column]) {
 	case 0:
 	    digitalWrite(SHIFT_SER, LOW);
@@ -71,8 +82,14 @@ void displayBoard()
     column = (column + 1) % 3;
 }
 
+void blink()
+{
+    blinker = (blinker + 1) % 2;
+}
+
 // TimedAction
 TimedAction updateDisplay = TimedAction(1, displayBoard);
+TimedAction updateBlinker = TimedAction(100, blink);
 
 void setup()
 {
@@ -95,6 +112,7 @@ void setup()
     game[1][2] = 1;
     game[2][1] = 1;
     game[0][1] = 1;
+    blinker = 1;
     turn = 1;
     cursorCol = 0;
     cursorRow = 0;
