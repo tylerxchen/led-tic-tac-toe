@@ -9,6 +9,7 @@ const int SHIFT_SER = 6;
 const int COL1 = 7;
 const int COL2 = 8;
 const int COL3 = 9;
+const int BUTTON = 10;
 
 
 // variables
@@ -19,6 +20,7 @@ int cursorRow;
 int gameChanged;
 int column;
 int blinker;
+int gameover;
 
 volatile int changePos;
 
@@ -31,13 +33,14 @@ void displayBoard()
     digitalWrite(SHIFT_RCLK, LOW);
 	
     for (int i = 0; i < 3; i++) {
-	if (i == cursorRow && column == cursorCol) {
+	if (i == cursorRow && column == cursorCol && !gameover) {
 	    digitalWrite(SHIFT_SER, blinker);
 	    digitalWrite(SHIFT_SRCLK, HIGH);
 	    digitalWrite(SHIFT_SRCLK, LOW);
 	    digitalWrite(SHIFT_SER, blinker);
 	    digitalWrite(SHIFT_SRCLK, HIGH);
 	    digitalWrite(SHIFT_SRCLK, LOW);
+        continue;
 	}
 	
 	switch (game[i][column]) {
@@ -102,9 +105,11 @@ void setup()
     pinMode(COL1, OUTPUT);
     pinMode(COL2, OUTPUT);
     pinMode(COL3, OUTPUT);
+    pinMode(BUTTON, INPUT);
     memset(game, 0, sizeof(game[0][0])*3*3);
     //game[2][2] = 1;
     //game[0][0] = 2;
+    /*
     game[2][2] = 2;
     game[1][1] = 2;
     game[0][0] = 2;
@@ -112,6 +117,8 @@ void setup()
     game[1][2] = 1;
     game[2][1] = 1;
     game[0][1] = 1;
+    */
+    gameover = 0;
     blinker = 1;
     turn = 1;
     cursorCol = 0;
@@ -125,6 +132,7 @@ void setup()
 
 void loop()
 {
+    updateBlinker.check();
     updateDisplay.check();
     if (changePos) {
 	cursorRow = (cursorRow + ((cursorCol + changePos) / 3)) % 3;
@@ -135,6 +143,15 @@ void loop()
     if (gameChanged) {
 	printBoard();
 	gameChanged = 0;
+    }
+    if (digitalRead(BUTTON)) {
+        mark(cursorRow, cursorCol);
+    }
+    if (check_win() || check_tie()) {
+        gameover = 1;
+        while (1) {
+            updateDisplay.check();
+        }
     }
 }
 
@@ -160,16 +177,18 @@ void readEncoder()
     }
 }
 
-void mark(int game[3][3], int i, int j, int player)
+void mark(int i, int j)
 {
     if (!game[i][j]) {
-	game[i][j] = player;
-    }
+	game[i][j] = turn + 1;
+        
+    turn = (turn + 1) % 2;
 
     gameChanged = 1;
+    }
 }
 
-int check_win(int game[3][3])
+int check_win()
 {
     // check rows
     for (int i = 0; i < 3; i++) {
@@ -195,7 +214,7 @@ int check_win(int game[3][3])
     return 0;
 }
 
-int check_tie(int game[3][3])
+int check_tie()
 {
     for (int i = 0; i < 3; i++) {
 	for (int j = 0; j < 3; j++) {
